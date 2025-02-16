@@ -1,10 +1,11 @@
 import { Data, Effect, pipe } from "effect";
+import { decodePokemon } from "./schemas/pokemon";
 
 class FetchError extends Data.TaggedError("FetchError")<{}> {}
 class JsonError extends Data.TaggedError("JsonError")<{}> {}
 
 const fetchRequest = Effect.tryPromise({
-  try: () => fetch("https://pokeapi.co/api/v2/psadokemon/garchomp/"),
+  try: () => fetch("https://pokeapi.co/api/v2/pokemon/garchomp/"),
   catch: () => new FetchError(),
 });
 
@@ -19,14 +20,16 @@ const program = Effect.gen(function* () {
   if (!response.ok) {
     return yield* new FetchError();
   }
+  const json = yield* jsonResponse(response);
 
-  return yield* jsonResponse(response);
+  return yield* decodePokemon(json);
 });
 
 const main = program.pipe(
   Effect.catchTags({
     FetchError: () => Effect.succeed("Fetch error"),
     JsonError: () => Effect.succeed("Json error"),
+    ParseError: () => Effect.succeed("Parse error"),
   }),
 );
 
